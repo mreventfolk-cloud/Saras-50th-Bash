@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>90s Birthday Bash Bingo</title>
+<style>
+  :root{
+    --teal:#2ddac9;
+    --pink:#ff3d94;
+    --yellow:#f5d94e;
+    --purple:#8b3fd9;
+    --bg:#170a29;
+    --panel:#fdf6ff;
+    --ink:#1a0d2e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:'Courier New', 'Consolas', monospace;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255,61,148,.18), transparent 55%),
+      var(--bg);
+    padding:32px 12px 60px;
+    color:var(--teal);
+  }
+  h1{
+    text-align:center;
+    font-size:2rem;
+    margin:0 0 6px;
+    color:var(--pink);
+    text-shadow: 0 0 6px rgba(255,61,148,.7), 0 0 18px rgba(255,61,148,.4);
+    letter-spacing:1px;
+  }
+  p.sub{
+    text-align:center;
+    margin:0 0 24px;
+    color:var(--teal);
+    font-weight:600;
+    font-size:.85rem;
+    letter-spacing:.5px;
+  }
+  .card{
+    max-width:520px;
+    margin:0 auto;
+    background:var(--panel);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 0 0 1px rgba(255,255,255,.06), 0 20px 50px rgba(0,0,0,.45);
+  }
+  .titlebar{
+    background:linear-gradient(90deg, var(--pink), #ff6fb5);
+    padding:10px 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .titlebar .dot{
+    width:11px;
+    height:11px;
+    border-radius:50%;
+    display:inline-block;
+  }
+  .titlebar .dot:nth-child(1){ background:#fff2f8; }
+  .titlebar .dot:nth-child(2){ background:#c9ffb0; }
+  .titlebar .dot:nth-child(3){ background:#a6d8ff; }
+  .titlebar .filename{
+    margin-left:6px;
+    color:#fff;
+    font-weight:700;
+    font-size:.85rem;
+    letter-spacing:1px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:8px;
+    padding:18px;
+  }
+  .cell{
+    position:relative;
+    aspect-ratio:1/1;
+    background:#fff;
+    border:2px solid var(--purple);
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:8px;
+    font-size:.78rem;
+    font-weight:700;
+    line-height:1.2;
+    color:var(--ink);
+    cursor:pointer;
+    user-select:none;
+    transition:transform .1s ease, background .15s ease;
+    overflow:hidden;
+  }
+  .cell:hover{ transform:scale(1.03); }
+  .cell.free{
+    cursor:default;
+    border-color:var(--pink);
+    padding:0;
+  }
+  .cell.free img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    border-radius:7px;
+  }
+  .free-fallback{
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.8rem;
+    background:linear-gradient(135deg, var(--pink), var(--purple));
+    color:#fff;
+    border-radius:7px;
+  }
+  .cell.marked{
+    background:var(--yellow);
+  }
+  .cell.marked::after{
+    content:"✕";
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:2.4rem;
+    font-weight:900;
+    color:rgba(139,63,217,.8);
+  }
+  .controls{
+    max-width:520px;
+    margin:18px auto 0;
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  button{
+    font-family:inherit;
+    font-weight:700;
+    border:none;
+    background:var(--pink);
+    color:#fff;
+    padding:10px 20px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:.8rem;
+    letter-spacing:1px;
+    text-transform:uppercase;
+  }
+  button.secondary{
+    background:#2a1642;
+    color:var(--teal);
+    border:1px solid var(--teal);
+  }
+  #bingoBanner{
+    display:none;
+    max-width:520px;
+    margin:14px auto 0;
+    text-align:center;
+    font-size:1.5rem;
+    font-weight:900;
+    color:#fff;
+    background:linear-gradient(90deg, var(--pink), var(--purple));
+    padding:10px;
+    border-radius:12px;
+    letter-spacing:1px;
+    box-shadow:0 0 20px rgba(255,61,148,.5);
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<h1>🎉 90s Birthday Bash Bingo 🎉</h1>
+<p class="sub">TAP A SQUARE TO MARK IT — YOUR CARD IS SAVED TO THIS BROWSER</p>
+
+<div class="card">
+  <div class="titlebar">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="filename">BINGO.TXT</span>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div id="bingoBanner">BINGO! 🎊</div>
+
+<div class="controls">
+  <button id="newCardBtn" class="secondary">New Card</button>
+  <button id="clearMarksBtn">Clear Marks</button>
+</div>
+
+<script>
+  const ITEMS = [
+    "Get a stranger to sing one line of a 90s song with you",
+    "Take a photo with someone wearing leopard print",
+    "Find someone born in 1990",
+    "Get a bartender to pick the next 90s song",
+    "Convince a stranger to guess who is turning 50",
+    "Get a stranger to do the Macarena",
+    "Get a bar employee in a group photo",
+    "Recreate a 90s album cover",
+    "Find someone who went to prom in the 90s",
+    "Get three strangers to yell \"Happy 50th, Sara!\"",
+    "Trade a small item with a stranger",
+    "Get someone to name all five Spice Girls",
+    "Find someone who still knows their AOL screen name",
+    "Get a stranger to tell you their favorite 90s movie",
+    "Collect three different bar napkins or coasters",
+    "Get photobombed on purpose",
+    "Get a stranger to recreate a 90s dance move",
+    "Find someone who graduated high school in the 90s",
+    "Get a stranger to rate your outfit 1 to 10"
+  ];
+
+  const COLS = 3;
+  const ROWS = 3;
+  const FREE_INDEX = 4; // dead center of a 3x3 grid
+  const NEEDED = ROWS * COLS - 1; // 8 phrases picked at random from ITEMS
+  const IMAGE_SRC = "photo.jpg"; // put the birthday girl's photo next to this HTML file with this name
+
+  const ORDER_KEY = "bingo_order_v1";
+  const MARKS_KEY = "bingo_marks_v1";
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function getOrder(){
+    const saved = localStorage.getItem(ORDER_KEY);
+    if(saved) return JSON.parse(saved);
+    const order = shuffle(ITEMS).slice(0, NEEDED);
+    localStorage.setItem(ORDER_KEY, JSON.stringify(order));
+    return order;
+  }
+
+  function getMarks(){
+    const saved = localStorage.getItem(MARKS_KEY);
+    if(saved) return JSON.parse(saved);
+    const marks = new Array(ROWS * COLS).fill(false);
+    marks[FREE_INDEX] = true;
+    localStorage.setItem(MARKS_KEY, JSON.stringify(marks));
+    return marks;
+  }
+
+  function saveMarks(marks){
+    localStorage.setItem(MARKS_KEY, JSON.stringify(marks));
+  }
+
+  let order = getOrder();
+  let marks = getMarks();
+  let bingoAlreadyCelebrated = false;
+
+  function celebrate(){
+    if(typeof confetti !== "function") return;
+    const colors = ["#ff3d94", "#2ddac9", "#f5d94e", "#8b3fd9"];
+    confetti({ particleCount: 120, spread: 90, origin: { y: 0.5 }, colors });
+    confetti({ particleCount: 80, angle: 60, spread: 70, origin: { x: 0, y: 0.6 }, colors });
+    confetti({ particleCount: 80, angle: 120, spread: 70, origin: { x: 1, y: 0.6 }, colors });
+  }
+
+  function render(){
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+    let phraseIdx = 0;
+
+    for(let i = 0; i < ROWS * COLS; i++){
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.dataset.index = i;
+
+      if(i === FREE_INDEX){
+        cell.classList.add("free");
+        const img = document.createElement("img");
+        img.src = IMAGE_SRC;
+        img.alt = "Birthday girl";
+        img.onerror = function(){
+          cell.innerHTML = '<div class="free-fallback">🎂</div>';
+        };
+        cell.appendChild(img);
+      } else {
+        cell.textContent = order[phraseIdx];
+        phraseIdx++;
+        if(marks[i]) cell.classList.add("marked");
+        cell.addEventListener("click", () => toggleCell(i));
+      }
+      grid.appendChild(cell);
+    }
+    checkBingo();
+  }
+
+  function toggleCell(i){
+    marks[i] = !marks[i];
+    saveMarks(marks);
+    render();
+  }
+
+  function checkBingo(){
+    let won = false;
+    for(let r = 0; r < ROWS; r++){
+      let full = true;
+      for(let c = 0; c < COLS; c++){
+        if(!marks[r * COLS + c]) full = false;
+      }
+      if(full) won = true;
+    }
+    for(let c = 0; c < COLS; c++){
+      let full = true;
+      for(let r = 0; r < ROWS; r++){
+        if(!marks[r * COLS + c]) full = false;
+      }
+      if(full) won = true;
+    }
+    if(ROWS === COLS){
+      let diag1 = true, diag2 = true;
+      for(let i = 0; i < ROWS; i++){
+        if(!marks[i * COLS + i]) diag1 = false;
+        if(!marks[i * COLS + (COLS - 1 - i)]) diag2 = false;
+      }
+      if(diag1 || diag2) won = true;
+    }
+    document.getElementById("bingoBanner").style.display = won ? "block" : "none";
+    if(won && !bingoAlreadyCelebrated){
+      bingoAlreadyCelebrated = true;
+      celebrate();
+    } else if(!won){
+      bingoAlreadyCelebrated = false;
+    }
+  }
+
+  document.getElementById("newCardBtn").addEventListener("click", () => {
+    if(confirm("Shuffle a brand new card? This replaces your current card and marks.")){
+      order = shuffle(ITEMS).slice(0, NEEDED);
+      localStorage.setItem(ORDER_KEY, JSON.stringify(order));
+      marks = new Array(ROWS * COLS).fill(false);
+      marks[FREE_INDEX] = true;
+      bingoAlreadyCelebrated = false;
+      saveMarks(marks);
+      render();
+    }
+  });
+
+  document.getElementById("clearMarksBtn").addEventListener("click", () => {
+    marks = new Array(ROWS * COLS).fill(false);
+    marks[FREE_INDEX] = true;
+    bingoAlreadyCelebrated = false;
+    saveMarks(marks);
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>
